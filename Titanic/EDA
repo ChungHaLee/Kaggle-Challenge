@@ -1,0 +1,245 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Kaggle Challenge 
+# ## #1 Titanic. Machine Learning from Disaster (with EDA)
+
+# ### 1. 필요한 모듈 불러오기(numpy, pandas)
+
+# In[1]:
+
+
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+get_ipython().magic(u'matplotlib inline')
+
+
+# ### 2. train data 불러오기
+
+# In[2]:
+
+
+raw_data = pd.read_csv('/home/lifeofpy/Desktop/Titanic/train.csv', engine='python')
+raw_data.head()
+
+
+# ### 3. 변수별 결측치 현황 확인
+
+# In[3]:
+
+
+raw_data.isnull().sum()
+
+
+# In[4]:
+
+
+len(raw_data)
+
+
+# 독립변수의 총 개수는 891개인데, Cabin 변수의 결측치가 687개라는 점을 감안하여 Cabin 변수는 분석 대상에서 제외하도록한다.
+
+# ### 4.  결측치 처리
+
+# (1) Cabin 변수를 분석대상에서 제외했으므로, 해당 열을 삭제해준다.
+
+# In[5]:
+
+
+del raw_data['Cabin']
+
+
+# In[6]:
+
+
+raw_data
+
+
+# (2) Age 변수는 결측치가 177개 있으나, 결측치 행 제거를 하지 않고 나이의 평균값으로 결측치를 채우기로 했다.
+
+# In[7]:
+
+
+raw_data['Age'].mean()
+
+
+# 타이타닉 탑승객 나이의 평균은 29.6세이다.
+
+# In[8]:
+
+
+raw_data['Age'].fillna(value=raw_data['Age'].mean(), inplace=True)
+raw_data
+
+
+# (3) Embarked (선착장) 변수에 대해서는 결측치가 2개이므로, None 값으로 대체해준다.
+
+# In[9]:
+
+
+raw_data['Embarked'].fillna(value='None', inplace=True)
+raw_data
+
+
+# ------------------------------------------------------------------------------------
+
+# ### 5. 탐색적 분석(EDA)을 통한 데이터 시각화
+
+# 내가 세운 가설이 신빙성이 있는지 탐색적 분석을 통해 알아보자!
+
+# [1] 남성보다 여성이 생존율이 더 높을 것이다.
+
+# [2] 승객 등급이 높을수록 생존율이 더 높을 것이다.
+
+# [3] 함께 탑승한 자녀와 부모의 수가 많을수록 생존율이 더 높을 것이다.
+
+# [4] 나이가 어릴수록 생존율이 더 높을 것이다.
+
+# ☞ 생존율의 높고 낮음의 기준을 정하기 위해서는 전체 탑승객 기준의 생존율을 알아야 한다.
+
+# ### 전체 탑승객 기준의 생존율 구하기
+
+# In[10]:
+
+
+people_survived = 0
+for i in range(len(raw_data)):
+    if raw_data['Survived'][i] == 1:
+        people_survived += 1
+
+
+# In[11]:
+
+
+# 생존한 사람의 수
+people_survived
+
+
+# In[12]:
+
+
+survival_rate = people_survived/len(raw_data) * 100
+survival_rate
+
+
+# ☞ 전체 탑승객 기준의 생존율은 38.3%이다. 총 탑승객 중 38% 가 타이타닉에서 살아나올 수 있었다.
+
+# In[13]:
+
+
+raw_data.describe()
+
+
+# ### 1) 성별을 기준으로 생존율 비교해보기
+
+# In[14]:
+
+
+df_count = raw_data.groupby(['Sex']).size()
+df_count.plot.pie(y='Gender Rate', autopct='%.1f%%')
+
+
+# In[15]:
+
+
+sns.barplot(x='Sex', y='Survived', data=raw_data)
+
+
+# 전체 탑승객 중 남성은 64.8%, 여성은 35.2%였다. 
+# 생존율의 경우 성별로 비교해야 하므로, 남성 안에서의 남성의 생존율, 여성 중에서의 여성의 생존율로 나눠 구해야한다.
+
+# In[16]:
+
+
+raw_data.groupby('Sex').mean()
+
+
+# 여성의 생존율은 74.2%, 남성의 생존율은 18.8%로 여성의 생존율이 월등히 높았다. 따라서 해당 가설은 수용되었다.
+
+# ### 2) 승객 등급이 높을수록 생존율이 높을 것이다.
+
+# In[17]:
+
+
+grade_data = raw_data.groupby('Pclass').mean()
+
+
+# In[18]:
+
+
+grade_data
+
+
+# In[19]:
+
+
+sns.barplot(x='Pclass', y='Survived', data=raw_data)
+
+
+# 1등급 승객의 생존율은 62.9%이며, 2등급, 3등급 순으로 생존율이 높다. 따라서 해당 가설은 수용되었다.
+
+# ### 3) 함께 탑승한 자녀와 부모의 수가 많을수록 생존율이 더 높을 것이다.
+
+# In[20]:
+
+
+raw_data.groupby('Parch').mean()
+
+
+# In[25]:
+
+
+sns.barplot(x='Parch', y='Survived', data=raw_data)
+
+
+# 함께 탑승한 자녀와 부모의 수가 3명인 경우, 생존율이 60%로 가장 높았고, 가장 많은 6명의 경우에 생존율이 0% 였기 때문에 해당 가설은 기각되었다.
+
+# ### 4) 나이가 어릴수록 생존율이 더 높을 것이다.
+
+# In[21]:
+
+
+raw_data['Age'].hist(figsize=(10,7), grid=False)
+
+
+# 위 히스토그램은 전체 탑승객의 나이 분포를 나타낸다. 30대가 가장 많은 형태를 띄고 있다.
+
+# 더 명확한 기준을 위해, '나이가 어리다'의 기준을 10대 이하로 잡아보자. 그리고 나이가 어린(13살 이하) 생존자라는 파생변수(young_survivors)를 하나 만들어서, 나이가 어린 생존자의 비율과 그렇지 않은 생존자의 비율을 비교해보자.
+
+# In[22]:
+
+
+raw_data['young_survivors'] = 0
+raw_data.head()
+
+
+# In[23]:
+
+
+young_people = 0
+for i in range(len(raw_data)):
+    if raw_data['Age'][i] <= 13:
+        young_people += 1
+        if raw_data['Survived'][i] == 1:
+            raw_data['young_survivors'][i] += 1
+raw_data[30:60]
+
+
+# 이를 통해 young_survivors 에 1의 값을 가지고 있으면 나이가 어린데(13살 이하) 생존한 사람이며, 전체 나이가 어린 사람의 비율에서 생존한 사람을 쉽게 구할 수 있는 지표가 된다.
+
+# In[26]:
+
+
+young = raw_data.groupby('young_survivors').mean()
+young
+
+
+# In[29]:
+
+
+sns.barplot(x='young_survivors', y='Survived', data=raw_data)
+
+
+# 분석 결과, 나이가 13살 이하라면 생존확률이 100% 가 나왔다. 따라서 나이가 어릴수록 생존율이 높다는 가설은 수용되었다.
